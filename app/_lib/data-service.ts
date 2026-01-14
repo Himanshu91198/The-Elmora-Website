@@ -2,6 +2,9 @@ import { eachDayOfInterval } from "date-fns";
 import { supabase } from "./supabase";
 import { ICabinResponse } from "../_models/_response/ICabinResponse";
 import { notFound } from "next/navigation";
+import { ISettingsResponse } from "../_models/_response/ISettingsResponse";
+import { IGuestResponse } from "../_models/_response/IGuestResponse";
+import { IBookingResponse } from "../_models/_response/IBookingResponse";
 /////////////
 // GET
 
@@ -39,7 +42,7 @@ export async function getCabinPrice(id: number) {
 export const getCabins = async function (): Promise<ICabinResponse[]> {
   const { data, error } = await supabase
     .from("cabins")
-    .select("id, name, maxCapacity, regularPrice, discount, image")
+    .select("id, name, maxCapacity, regularPrice, discount, image, description")
     .order("name");
 
   // For testing
@@ -54,7 +57,7 @@ export const getCabins = async function (): Promise<ICabinResponse[]> {
 };
 
 // Guests are uniquely identified by their email address
-export async function getGuest(email: string) {
+export async function getGuest(email: string): Promise<IGuestResponse> {
   const { data } = await supabase
     .from("guests")
     .select("*")
@@ -80,10 +83,11 @@ export async function getBooking(id: number) {
   return data;
 }
 
-export async function getBookings(guestId: number) {
+export async function getBookings(
+  guestId: number
+): Promise<IBookingResponse[]> {
   const { data, error } = await supabase
     .from("bookings")
-    // We actually also need data on the cabins as well. But let's ONLY take the data that we actually need, in order to reduce downloaded data.
     .select(
       "id, created_at, startDate, endDate, numNights, numGuests, totalPrice, guestId, cabinId, cabins(name, image)"
     )
@@ -91,14 +95,15 @@ export async function getBookings(guestId: number) {
     .order("startDate");
 
   if (error) {
-    console.error(error);
     throw new Error("Bookings could not get loaded");
   }
 
-  return data;
+  return data as unknown as IBookingResponse[];
 }
 
-export async function getBookedDatesByCabinId(cabinId: number) {
+export async function getBookedDatesByCabinId(
+  cabinId: number
+): Promise<Date[]> {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -127,7 +132,7 @@ export async function getBookedDatesByCabinId(cabinId: number) {
   return bookedDates;
 }
 
-export async function getSettings() {
+export async function getSettings(): Promise<ISettingsResponse> {
   const { data, error } = await supabase.from("settings").select("*").single();
 
   if (error) {
@@ -153,7 +158,10 @@ export async function getCountries() {
 /////////////
 // CREATE
 
-export async function createGuest(newGuest) {
+export async function createGuest(newGuest: {
+  email: string;
+  fullName: string;
+}) {
   const { data, error } = await supabase.from("guests").insert([newGuest]);
 
   if (error) {
@@ -163,8 +171,8 @@ export async function createGuest(newGuest) {
 
   return data;
 }
-
-export async function createBooking(newBooking) {
+/*
+export async function createBooking(newBooking: IBookingRequest) {
   const { data, error } = await supabase
     .from("bookings")
     .insert([newBooking])
@@ -184,7 +192,11 @@ export async function createBooking(newBooking) {
 // UPDATE
 
 // The updatedFields is an object which should ONLY contain the updated data
-export async function updateGuest(id, updatedFields) {
+/*
+export async function updateGuest(
+  id: number,
+  updatedFields: Partial<IGuestRequest>
+) {
   const { data, error } = await supabase
     .from("guests")
     .update(updatedFields)
@@ -199,7 +211,10 @@ export async function updateGuest(id, updatedFields) {
   return data;
 }
 
-export async function updateBooking(id, updatedFields) {
+export async function updateBooking(
+  id: number,
+  updatedFields: Partial<IBookingRequest>
+) {
   const { data, error } = await supabase
     .from("bookings")
     .update(updatedFields)
@@ -226,3 +241,4 @@ export async function deleteBooking(id: number) {
   }
   return data;
 }
+*/

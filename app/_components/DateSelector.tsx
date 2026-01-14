@@ -1,34 +1,70 @@
-import { isWithinInterval } from "date-fns";
+"use client";
+
+import {
+  differenceInDays,
+  isPast,
+  isSameDay,
+  isWithinInterval,
+} from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { ICabinResponse } from "../_models/_response/ICabinResponse";
+import { ISettingsResponse } from "../_models/_response/ISettingsResponse";
+import { useReservationContext } from "./ReservationContext";
 
-function isAlreadyBooked(range, datesArr) {
+function isAlreadyBooked(
+  range: { from: Date | undefined; to?: Date | undefined },
+  datesArr: Date[]
+) {
   return (
     range.from &&
     range.to &&
     datesArr.some((date) =>
-      isWithinInterval(date, { start: range.from, end: range.to })
+      isWithinInterval(date, {
+        start: range.from as Date,
+        end: range.to as Date,
+      })
     )
   );
 }
 
-function DateSelector() {
-  // CHANGE
-  const regularPrice = 23;
-  const discount = 23;
-  const numNights = 23;
-  const cabinPrice = 23;
-  const range = { from: null, to: null };
-
+function DateSelector({
+  settings,
+  bookedDates,
+  cabin,
+}: {
+  settings: ISettingsResponse;
+  bookedDates: Date[];
+  cabin: ICabinResponse;
+}) {
+  const { range, setRange } = useReservationContext();
+  const { regularPrice, discount } = cabin;
+  const displayRange =
+    range && isAlreadyBooked(range, bookedDates)
+      ? { from: undefined, to: undefined }
+      : range;
+  const numNights =
+    displayRange?.from && displayRange?.to
+      ? differenceInDays(displayRange.to, displayRange.from)
+      : 0;
+  const cabinPrice = numNights * (regularPrice - discount);
   // SETTINGS
-  const minBookingLength = 1;
-  const maxBookingLength = 23;
-
+  const { minBookingLength, maxBookingLength } = settings;
   return (
-    <div className="flex flex-col justify-between">
+    <div className="flex flex-col justify-between border border-primary-800">
       <DayPicker
-        className="pt-12 place-self-center"
+        className="py-12 place-self-center"
         mode="range"
+        styles={{
+          nav: { display: "none" },
+          months: { gap: "10rem" },
+        }}
+        disabled={(curDate) =>
+          isPast(curDate) ||
+          bookedDates.some((date) => isSameDay(date, curDate))
+        }
+        selected={displayRange}
+        onSelect={setRange}
         min={minBookingLength + 1}
         max={maxBookingLength}
         fromMonth={new Date()}
@@ -66,10 +102,10 @@ function DateSelector() {
           ) : null}
         </div>
 
-        {range.from || range.to ? (
+        {range?.from || range?.to ? (
           <button
             className="border border-primary-800 py-2 px-4 text-sm font-semibold"
-            onClick={() => resetRange()}
+            onClick={() => setRange({ from: undefined, to: undefined })}
           >
             Clear
           </button>
